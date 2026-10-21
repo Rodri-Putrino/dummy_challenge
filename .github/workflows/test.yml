@@ -1,0 +1,39 @@
+name: Pipeline checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16.8
+        env:
+          POSTGRES_DB: warehouse
+          POSTGRES_USER: warehouse
+          POSTGRES_PASSWORD: warehouse_local
+        ports: ['55432:5432']
+        options: >-
+          --health-cmd 'pg_isready -U warehouse -d warehouse'
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGHOST: localhost
+      PGPORT: '55432'
+      PGDATABASE: warehouse
+      PGUSER: warehouse
+      PGPASSWORD: warehouse_local
+      RUN_INTEGRATION: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - run: pytest -q
+      - name: Build isolated Airflow and dbt image
+        run: docker build -f docker/Dockerfile -t sales-airflow .
+      - name: Import DAG in Airflow
+        run: >-
+          docker run --rm -v "$PWD:/opt/project:ro" --entrypoint python sales-airflow
+          -c "from airflow.models import DagBag; b = DagBag('/opt/project/dags', include_examples=False); assert not b.import_errors, b.import_errors; assert 'daily_sales_medallion' in b.dags"

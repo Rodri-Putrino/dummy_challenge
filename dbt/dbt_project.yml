@@ -1,0 +1,29 @@
+name: daily_sales
+version: '1.0.0'
+config-version: 2
+profile: daily_sales
+model-paths: [models]
+macro-paths: [macros]
+seed-paths: [seeds]
+test-paths: [tests]
+clean-targets: [target, dbt_packages]
+models:
+  daily_sales:
+    staging:
+      +schema: staging
+      +tags: [silver]
+    silver:
+      +schema: silver
+      +tags: [silver]
+    quarantine:
+      +schema: quarantine
+      +tags: [silver]
+    gold:
+      +schema: gold
+      +tags: [gold]
+seeds:
+  daily_sales:
+    +schema: reference
+    country_codes:
+      +column_types:
+        country_code: varchar(2)

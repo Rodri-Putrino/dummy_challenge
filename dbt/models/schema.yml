@@ -1,0 +1,50 @@
+version: 2
+models:
+  - name: stg_transactions
+    description: 'Una fila por fila Bronze, incluyendo inválidas; tipos seguros y motivos de rechazo.'
+    columns:
+      - name: raw_row_id
+        data_tests: [not_null, unique]
+  - name: silver_transactions
+    description: 'Hecho transaccional: clave natural (transaction_id, transaction_at UTC).'
+    columns:
+      - name: raw_row_id
+        data_tests: [not_null, unique]
+      - name: transaction_id
+        data_tests: [not_null]
+      - name: customer_id
+        data_tests: [not_null]
+      - name: transaction_at
+        data_tests: [not_null]
+      - name: business_date
+        data_tests: [not_null]
+      - name: amount
+        data_tests: [not_null]
+      - name: status
+        data_tests:
+          - accepted_values:
+              values: ['COMPLETED', 'PENDING', 'CANCELLED']
+      - name: country_code
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('country_codes')
+              field: country_code
+  - name: quarantine_transactions
+    description: 'Rechazos y versiones desplazadas, con payload original y referencia al ganador.'
+    columns:
+      - name: raw_row_id
+        data_tests: [not_null, unique]
+      - name: reason_codes
+        data_tests: [not_null]
+  - name: daily_country_sales
+    description: 'Hecho agregado diario por país, sólo COMPLETED aporta a facturación y ticket.'
+    columns:
+      - name: business_date
+        data_tests: [not_null]
+      - name: country_code
+        data_tests: [not_null]
+      - name: total_billed_amount
+        data_tests: [not_null]
+      - name: unique_transaction_count
+        data_tests: [not_null]

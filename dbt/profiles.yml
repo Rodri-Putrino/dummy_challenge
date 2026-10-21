@@ -1,0 +1,15 @@
+daily_sales:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('PGHOST', 'localhost') }}"
+      port: "{{ env_var('PGPORT', '55432') | int }}"
+      user: "{{ env_var('PGUSER', 'warehouse') }}"
+      password: "{{ env_var('PGPASSWORD') }}"
+      dbname: "{{ env_var('PGDATABASE', 'warehouse') }}"
+      schema: analytics
+      threads: 2
+      connect_timeout: 10
+      retries: 2
+      options: '-c timezone=UTC -c statement_timeout=1800000'

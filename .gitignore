@@ -1,0 +1,11 @@
+.env
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+dbt/target/
+dbt/logs/
+dbt/.user.yml
+artifacts/
+data/archive/
+.coverage

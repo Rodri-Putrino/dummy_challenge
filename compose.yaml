@@ -1,0 +1,51 @@
+services:
+  warehouse:
+    image: postgres:16.8
+    environment:
+      POSTGRES_DB: warehouse
+      POSTGRES_USER: warehouse
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-warehouse_local}
+      AIRFLOW_DB_PASSWORD: ${AIRFLOW_DB_PASSWORD:-airflow_local}
+    ports:
+      - "127.0.0.1:${WAREHOUSE_PORT:-55432}:5432"
+    volumes:
+      - warehouse-data:/var/lib/postgresql/data
+      - ./docker/init-airflow-db.sh:/docker-entrypoint-initdb.d/10-airflow.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U warehouse -d warehouse"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  airflow:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: standalone
+    depends_on:
+      warehouse:
+        condition: service_healthy
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/project/dags
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:${AIRFLOW_DB_PASSWORD:-airflow_local}@warehouse/airflow
+      AIRFLOW__CORE__DEFAULT_TIMEZONE: utc
+      PGHOST: warehouse
+      PGPORT: "5432"
+      PGDATABASE: warehouse
+      PGUSER: warehouse
+      PGPASSWORD: ${POSTGRES_PASSWORD:-warehouse_local}
+      PROJECT_ROOT: /opt/project
+      DATA_ROOT: /data
+      ARTIFACTS_ROOT: /opt/airflow/artifacts
+    ports:
+      - "127.0.0.1:${AIRFLOW_WEB_PORT:-18080}:8080"
+    volumes:
+      - .:/opt/project:ro
+      - ./data/incoming:/data/incoming:ro
+      - raw-archive:/data/archive
+      - airflow-home:/opt/airflow
+volumes:
+  warehouse-data:
+  airflow-home:
+  raw-archive:
